@@ -5,7 +5,6 @@ const Admin = db.Admin;
 
 // Register a new admin
 const registerAdmin = async (req, res) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -14,7 +13,6 @@ const registerAdmin = async (req, res) => {
   try {
     const { fullName, mobileNumber, role, password } = req.body;
     
-    // Check if admin with mobile number already exists
     const existingAdmin = await Admin.findOne({ where: { mobileNumber } });
     if (existingAdmin) {
       return res.status(400).json({ 
@@ -23,7 +21,6 @@ const registerAdmin = async (req, res) => {
       });
     }
 
-    // Create new admin
     const admin = await Admin.create({
       fullName,
       mobileNumber,

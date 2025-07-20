@@ -40,9 +40,15 @@ fs.readdirSync(__dirname)
   });
 
 // Initialize Admin model
-const initAdminModel = require('./admin.model');
-const Admin = initAdminModel(sequelize);
-db[Admin.name] = Admin;
+
+// const initAdminModel = require('./admin.model');
+// const Admin = initAdminModel(sequelize);
+// db[Admin.name] = Admin;
+
+// Initialize Program model
+
+// const Program = require('./program')(sequelize, Sequelize.DataTypes);
+// db[Program.name] = Program;
 
 // Set up associations
 Object.keys(db).forEach(modelName => {

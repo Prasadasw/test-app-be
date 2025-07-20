@@ -10,12 +10,13 @@ module.exports = (sequelize) => {
     },
     fullName: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      field: 'full_name'
     },
     mobileNumber: {
       type: DataTypes.STRING(15),
       allowNull: false,
-      unique: true,
+      field: 'mobile_number',
       validate: {
         is: /^[0-9]{10,15}$/
       }
@@ -36,7 +37,14 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'admins',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['mobile_number'],
+        name: 'unique_mobile_number'
+      }
+    ]
   });
 
   // Method to compare password

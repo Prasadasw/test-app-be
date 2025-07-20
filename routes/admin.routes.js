@@ -24,9 +24,6 @@ router.post('/register', [
 
 router.get('/', getAllAdmins);
 
-// @route   POST /api/admins/login
-// @desc    Login admin and get token
-// @access  Public
 router.post('/login', [
   ...loginAdminRules,
   (req, res, next) => {

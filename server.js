@@ -19,13 +19,25 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const adminRoutes = require('./routes/admin.routes');
-
-
+const programRoutes = require('./routes/program.routes');
+const testRoutes = require('./routes/test.routes');
+const questionRoutes = require('./routes/question.routes');
+// Admin routes
 app.use('/api/admins', adminRoutes);
+
+// Program routes
+app.use('/api/programs', programRoutes);
+
+app.use('/api/tests', testRoutes);
+
+app.use('/api/questions', questionRoutes);
+
+app.use('/public', express.static('public')); 
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Admin API' });
 });
+
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -40,11 +52,20 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();    
     try {
-      await sequelize.sync({ force: false, alter: true });
+      // Disable alter and force sync in production
+      const syncOptions = {
+        force: false,
+        alter: process.env.NODE_ENV !== 'production' // Only alter in non-production
+      };
+      
+      await sequelize.sync(syncOptions);
       console.log('✅ Database synchronized successfully');
     } catch (syncError) {
       console.error('❌ Error synchronizing database:', syncError);
-      throw syncError;
+      // Don't exit in development to allow manual fixes
+      if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+      }
     }
     
     const modelNames = Object.keys(db)
@@ -62,9 +83,12 @@ const startServer = async () => {
       });
     }
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`\n🚀 Server running on http://localhost:${PORT}`);
     });
+
+    // Store server reference for unhandled rejections
+    process.server = server;
   } catch (error) {
     console.error('\n❌ Fatal error during server startup:');
     console.error(error);
