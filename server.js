@@ -9,6 +9,7 @@ if (!process.env.JWT_SECRET) {
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const db = require('./models');
 const sequelize = db.sequelize;
 
@@ -18,10 +19,18 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the public directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Serve uploaded files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
 const adminRoutes = require('./routes/admin.routes');
 const programRoutes = require('./routes/program.routes');
 const testRoutes = require('./routes/test.routes');
 const questionRoutes = require('./routes/question.routes');
+
 // Admin routes
 app.use('/api/admins', adminRoutes);
 
@@ -32,12 +41,9 @@ app.use('/api/tests', testRoutes);
 
 app.use('/api/questions', questionRoutes);
 
-app.use('/public', express.static('public')); 
-
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Admin API' });
 });
-
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

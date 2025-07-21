@@ -1,10 +1,11 @@
 const { Question, Test } = require('../models');
+const path = require('path');
 
 const questionController = {
   async createQuestion(req, res) {
     try {
+      const { testId } = req.params;
       const {
-        test_id,
         question_text,
         option_a,
         option_b,
@@ -14,20 +15,36 @@ const questionController = {
         marks
       } = req.body;
 
+      // Verify test exists
+      const test = await Test.findByPk(testId);
+      if (!test) {
+        return res.status(404).json({
+          success: false,
+          message: 'Test not found'
+        });
+      }
+
+      // Helper function to process file paths
+      const processFilePath = (file) => {
+        if (!file) return null;
+        // Convert backslashes to forward slashes for consistent URLs
+        return file.path.replace(/\\/g, '/').replace('public', '');
+      };
+
       const question = await Question.create({
-        test_id,
+        test_id: testId,
         question_text,
         correct_option,
-        marks,
+        marks: parseInt(marks, 10) || 1,
         option_a,
         option_b,
         option_c,
         option_d,
-        question_image: req.files['question_image']?.[0]?.path,
-        option_a_image: req.files['option_a_image']?.[0]?.path,
-        option_b_image: req.files['option_b_image']?.[0]?.path,
-        option_c_image: req.files['option_c_image']?.[0]?.path,
-        option_d_image: req.files['option_d_image']?.[0]?.path
+        question_image: processFilePath(req.files['question_image']?.[0]),
+        option_a_image: processFilePath(req.files['option_a_image']?.[0]),
+        option_b_image: processFilePath(req.files['option_b_image']?.[0]),
+        option_c_image: processFilePath(req.files['option_c_image']?.[0]),
+        option_d_image: processFilePath(req.files['option_d_image']?.[0])
       });
 
       return res.status(201).json({
@@ -39,7 +56,8 @@ const questionController = {
       console.error('Error creating question:', error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to create question'
+        message: 'Failed to create question',
+        error: process.env.NODE_ENV === 'development' ? error.message : {}
       });
     }
   },
@@ -47,9 +65,19 @@ const questionController = {
   async getQuestionsByTest(req, res) {
     try {
       const { testId } = req.params;
+      
+      // Verify test exists
+      const test = await Test.findByPk(testId);
+      if (!test) {
+        return res.status(404).json({
+          success: false,
+          message: 'Test not found'
+        });
+      }
+
       const questions = await Question.findAll({
         where: { test_id: testId },
-        order: [['createdAt', 'DESC']]
+        order: [['createdAt', 'ASC']]
       });
 
       return res.status(200).json({
@@ -61,7 +89,8 @@ const questionController = {
       console.error('Error fetching questions:', error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch questions'
+        message: 'Failed to fetch questions',
+        error: process.env.NODE_ENV === 'development' ? error.message : {}
       });
     }
   }

@@ -83,6 +83,42 @@ const testController = {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
+  },
+
+  // Get a single test by ID
+  async getTestById(req, res) {
+    try {
+      const { id } = req.params;
+
+      const test = await Test.findByPk(id, {
+        include: [
+          {
+            model: Program,
+            as: 'program',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+
+      if (!test) {
+        return res.status(404).json({
+          success: false,
+          message: 'Test not found'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: test
+      });
+    } catch (error) {
+      console.error('Error fetching test:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch test',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
   }
 };
 
