@@ -30,10 +30,11 @@ const adminRoutes = require('./routes/admin.routes');
 const programRoutes = require('./routes/program.routes');
 const testRoutes = require('./routes/test.routes');
 const questionRoutes = require('./routes/question.routes');
-
+const studentRoutes = require('./routes/student.routes');
 // Admin routes
 app.use('/api/admins', adminRoutes);
 
+app.use('/api/students', studentRoutes);
 // Program routes
 app.use('/api/programs', programRoutes);
 
