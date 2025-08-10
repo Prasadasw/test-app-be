@@ -31,7 +31,7 @@ const multiUpload = (req, res, next) => {
 // Create a new question for a specific test
 router.post('/test/:testId/questions', multiUpload, questionController.createQuestion);
 
-// Get all questions by test ID
+// Get all questions by test ID (public access)
 router.get('/test/:testId/questions', questionController.getQuestionsByTest);
 
 module.exports = router;

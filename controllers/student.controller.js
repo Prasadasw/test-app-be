@@ -133,7 +133,32 @@ const studentController = {
         error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
       });
     }
+  },
+
+  async getAllStudents(req, res) {
+    try {
+      const students = await Student.findAll({
+        attributes: { exclude: ['password'] },
+        order: [['createdAt', 'DESC']]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Students retrieved successfully',
+        data: students,
+        count: students.length
+      });
+    } catch (err) {
+      console.error('Get all students error:', err);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to fetch students', 
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      });
+    }
   }
 };
+ 
+
 
 module.exports = studentController;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const testController = require('../controllers/test.controller');
+const authMiddleware = require('../middleware/auth.middleware');
 
 // Create new test
 router.post('/', testController.createTest);
@@ -13,5 +14,8 @@ router.get('/:id', testController.getTestById);
 
 // Get all tests for a given program
 router.get('/program/:programId', testController.getTestsByProgram);
+
+// Get available tests for student enrollment
+router.get('/available', authMiddleware, testController.getAvailableTestsForStudent);
 
 module.exports = router;

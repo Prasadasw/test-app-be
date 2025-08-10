@@ -1,4 +1,4 @@
-const { Question, Test } = require('../models');
+const { Question, Test, TestEnrollment } = require('../models');
 const path = require('path');
 
 const questionController = {
@@ -65,6 +65,7 @@ const questionController = {
   async getQuestionsByTest(req, res) {
     try {
       const { testId } = req.params;
+      const student_id = req.user?.id; // From auth middleware
       
       // Verify test exists
       const test = await Test.findByPk(testId);
@@ -73,6 +74,35 @@ const questionController = {
           success: false,
           message: 'Test not found'
         });
+      }
+
+      // Check if student has approved enrollment for this test
+      if (student_id) {
+        const enrollment = await TestEnrollment.findOne({
+          where: { 
+            student_id, 
+            test_id: testId,
+            status: 'approved'
+          }
+        });
+
+        if (!enrollment) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have access to this test. Please request enrollment first.',
+            code: 'ENROLLMENT_REQUIRED'
+          });
+        }
+
+        // Check if enrollment has expired
+        if (enrollment.expires_at && new Date() > enrollment.expires_at) {
+          return res.status(403).json({
+            success: false,
+            message: 'Your access to this test has expired',
+            code: 'ENROLLMENT_EXPIRED',
+            expired_at: enrollment.expires_at
+          });
+        }
       }
 
       const questions = await Question.findAll({

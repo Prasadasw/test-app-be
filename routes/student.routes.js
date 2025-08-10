@@ -10,4 +10,7 @@ router.post('/login', studentController.login);
 // Protected routes (require authentication)
 router.get('/profile', authMiddleware, studentController.getProfile);
 
+//gET all students
+router.get('/', studentController.getAllStudents);
+
 module.exports = router;

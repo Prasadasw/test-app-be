@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const Admin = sequelize.define('Admin', {
     id: {
       type: DataTypes.INTEGER,
@@ -37,19 +37,21 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'admins',
     timestamps: true,
-    underscored: true,
-    indexes: [
-      {
-        unique: true,
-        fields: ['mobile_number'],
-        name: 'unique_mobile_number'
-      }
-    ]
+    underscored: true
+    // Note: Indexes are already created via migrations, no need to duplicate them here
   });
 
   // Method to compare password
   Admin.prototype.validPassword = function(password) {
     return bcrypt.compareSync(password, this.password);
+  };
+
+  // Static associations method
+  Admin.associate = function(models) {
+    Admin.hasMany(models.TestEnrollment, {
+      foreignKey: 'approved_by',
+      as: 'approvedEnrollments'
+    });
   };
 
   return Admin;

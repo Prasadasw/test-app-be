@@ -13,6 +13,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    console.log('🎫 Received token:', token.substring(0, 50) + '...');
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -23,11 +24,13 @@ const authMiddleware = async (req, res, next) => {
     try {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('🔍 JWT Decoded payload:', decoded);
       
       // Add user from payload
       const user = await Student.findByPk(decoded.id, {
         attributes: { exclude: ['password'] }
       });
+      console.log('👤 Found user in DB:', user?.dataValues || 'No user found');
 
       if (!user) {
         return res.status(401).json({

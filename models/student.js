@@ -5,7 +5,10 @@ const bcrypt = require('bcryptjs');
 module.exports = (sequelize, DataTypes) => {
   class Student extends Model {
     static associate(models) {
-      // define association here if needed
+      Student.hasMany(models.TestEnrollment, {
+        foreignKey: 'student_id',
+        as: 'enrollments'
+      });
     }
 
     // Method to check if the password is valid

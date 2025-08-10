@@ -1,4 +1,4 @@
-const { Test, Program } = require('../models');
+const { Test, Program, TestEnrollment } = require('../models');
 const { Op } = require('sequelize');
 
 const testController = {
@@ -116,6 +116,58 @@ const testController = {
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch test',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  },
+
+  // Get available tests for student enrollment (excludes already enrolled tests)
+  async getAvailableTestsForStudent(req, res) {
+    try {
+      const student_id = req.user.id;
+
+      // Get all test IDs that the student has already enrolled in
+      const enrolledTests = await TestEnrollment.findAll({
+        where: { student_id },
+        attributes: ['test_id']
+      });
+
+      const enrolledTestIds = enrolledTests.map(enrollment => enrollment.test_id);
+
+      // Get all active tests that the student hasn't enrolled in
+      const whereClause = {
+        status: true // Only active tests
+      };
+
+      if (enrolledTestIds.length > 0) {
+        whereClause.id = {
+          [Op.notIn]: enrolledTestIds
+        };
+      }
+
+      const availableTests = await Test.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: Program,
+            as: 'program',
+            attributes: ['id', 'name']
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+
+      return res.status(200).json({
+        success: true,
+        count: availableTests.length,
+        data: availableTests,
+        message: availableTests.length === 0 ? 'No available tests for enrollment' : undefined
+      });
+    } catch (error) {
+      console.error('Error fetching available tests:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch available tests',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
