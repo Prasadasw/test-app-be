@@ -9,6 +9,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'student_id',
         as: 'enrollments'
       });
+      Student.hasMany(models.TestSubmission, {
+        foreignKey: 'student_id',
+        as: 'submissions'
+      });
     }
 
     // Method to check if the password is valid

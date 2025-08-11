@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'approved_by',
         as: 'approver'
       });
+      TestEnrollment.hasOne(models.TestSubmission, {
+        foreignKey: 'enrollment_id',
+        as: 'submission'
+      });
     }
   }
 

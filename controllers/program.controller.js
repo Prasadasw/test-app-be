@@ -48,13 +48,30 @@ const programController = {
   async getPrograms(req, res) {
     try {
       const programs = await Program.findAll({
+        include: [
+          {
+            model: sequelize.models.Test,
+            as: 'tests',
+            attributes: ['id'],
+            where: { status: true },
+            required: false
+          }
+        ],
         order: [['createdAt', 'DESC']]
+      });
+
+      // Add test count to each program
+      const programsWithTestCount = programs.map(program => {
+        const programData = program.toJSON();
+        programData.test_count = program.tests ? program.tests.length : 0;
+        delete programData.tests; // Remove the tests array, keep only the count
+        return programData;
       });
 
       return res.status(200).json({
         success: true,
         count: programs.length,
-        data: programs
+        data: programsWithTestCount
       });
     } catch (error) {
       console.error('Error fetching programs:', error);

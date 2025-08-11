@@ -110,6 +110,7 @@ const studentController = {
 
   async getProfile(req, res) {
     try {
+      // Get basic student data first
       const student = await Student.findByPk(req.user.id, {
         attributes: { exclude: ['password'] }
       });
@@ -121,9 +122,100 @@ const studentController = {
         });
       }
 
+      // Initialize profile data with basic student info
+      const profileData = {
+        student: {
+          id: student.id,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          dob: student.dob,
+          mobile: student.mobile,
+          alternate_mobile: student.alternate_mobile,
+          qualification: student.qualification,
+          is_verified: student.is_verified,
+          created_at: student.createdAt
+        },
+        enrollments: [],
+        test_results: []
+      };
+
+      // Try to get enrollments if the model is available
+      try {
+        const { TestEnrollment, Test, Program } = require('../models');
+        
+        const enrollments = await TestEnrollment.findAll({
+          where: { student_id: student.id },
+          include: [
+            {
+              model: Test,
+              as: 'test',
+              attributes: ['id', 'title', 'description', 'duration', 'total_marks'],
+              include: [
+                {
+                  model: Program,
+                  as: 'program',
+                  attributes: ['id', 'name']
+                }
+              ]
+            }
+          ]
+        });
+
+        profileData.enrollments = enrollments.map(enrollment => ({
+          id: enrollment.id,
+          status: enrollment.status,
+          request_message: enrollment.request_message,
+          admin_notes: enrollment.admin_notes,
+          approved_at: enrollment.approved_at,
+          expires_at: enrollment.expires_at,
+          test: enrollment.test
+        }));
+      } catch (enrollmentError) {
+        console.warn('Could not fetch enrollments:', enrollmentError.message);
+        // Continue without enrollments
+      }
+
+      // Try to get test submissions if the model is available
+      try {
+        const { TestSubmission } = require('../models');
+        
+        const submissions = await TestSubmission.findAll({
+          where: { student_id: student.id },
+          include: [
+            {
+              model: Test,
+              as: 'test',
+              attributes: ['id', 'title', 'description', 'duration', 'total_marks'],
+              include: [
+                {
+                  model: Program,
+                  as: 'program',
+                  attributes: ['id', 'name']
+                }
+              ]
+            }
+          ]
+        });
+
+        profileData.test_results = submissions.map(submission => ({
+          id: submission.id,
+          status: submission.status,
+          started_at: submission.started_at,
+          submitted_at: submission.submitted_at,
+          time_taken: submission.time_taken,
+          total_score: submission.total_score,
+          max_score: submission.max_score,
+          percentage: submission.percentage,
+          test: submission.test
+        }));
+      } catch (submissionError) {
+        console.warn('Could not fetch test submissions:', submissionError.message);
+        // Continue without test submissions
+      }
+
       return res.status(200).json({
         success: true,
-        data: student
+        data: profileData
       });
     } catch (err) {
       console.error('Profile error:', err);
