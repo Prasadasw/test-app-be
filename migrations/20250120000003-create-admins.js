@@ -9,13 +9,12 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      username: {
+      full_name: {
         type: Sequelize.STRING,
-        allowNull: false,
-        unique: true
+        allowNull: false
       },
-      email: {
-        type: Sequelize.STRING,
+      mobile_number: {
+        type: Sequelize.STRING(15),
         allowNull: false,
         unique: true
       },
@@ -23,27 +22,12 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      first_name: {
-        type: Sequelize.STRING,
-        allowNull: true
-      },
-      last_name: {
-        type: Sequelize.STRING,
-        allowNull: true
-      },
       role: {
-        type: Sequelize.ENUM('super_admin', 'admin', 'moderator'),
+        type: Sequelize.ENUM('admin', 'superadmin'),
         defaultValue: 'admin',
         allowNull: false
       },
-      is_active: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: true
-      },
-      last_login: {
-        type: Sequelize.DATE,
-        allowNull: true
-      },
+
       created_at: {
         allowNull: false,
         type: Sequelize.DATE
