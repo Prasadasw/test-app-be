@@ -14,7 +14,7 @@
     "dialect": "mysql"
   },
   "production": {
-    "username": "test_app_user",
+    "username": "root",
     "password": "testappdb",
     "database": "test_app_db",
     "host": "127.0.0.1",
