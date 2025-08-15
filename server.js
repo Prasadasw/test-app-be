@@ -72,6 +72,7 @@ const studentRoutes = require('./routes/student.routes');
 const enrollmentRoutes = require('./routes/enrollment.routes');
 const testSubmissionRoutes = require('./routes/testSubmission.routes');
 const resultReviewRoutes = require('./routes/resultReview.routes');
+const enquiryRoutes = require('./routes/enquiry.routes');
 // Admin routes
 app.use('/api/admins', adminRoutes);
 
@@ -92,6 +93,9 @@ app.use('/api/test-submissions', testSubmissionRoutes);
 
 // Result review routes (for admins)
 app.use('/api/result-review', resultReviewRoutes);
+
+// Enquiry routes
+app.use('/api/enquiries', enquiryRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Admin API' });

@@ -13,4 +13,10 @@ router.get('/profile', authenticateStudent, studentController.getProfile);
 //gET all students
 router.get('/', studentController.getAllStudents);
 
+// Get students who have completed tests (admin access)
+router.get('/completed-tests', studentController.getStudentsWithCompletedTests);
+
+// Get student's test completion summary
+router.get('/:studentId/test-summary', studentController.getStudentTestSummary);
+
 module.exports = router;

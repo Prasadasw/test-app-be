@@ -1,5 +1,6 @@
-const { Student } = require('../models');
+const { Student, TestSubmission, Test, Program } = require('../models');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 
 // Generate JWT token
 const generateToken = (student) => {
@@ -246,6 +247,175 @@ const studentController = {
         success: false, 
         message: 'Failed to fetch students', 
         error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+      });
+    }
+  },
+
+  // Get students who have completed tests
+  async getStudentsWithCompletedTests(req, res) {
+    try {
+      const { test_id, program_id, status } = req.query;
+      
+      let whereClause = {};
+      let testIncludeWhere = {};
+
+      // Filter by specific test
+      if (test_id) {
+        whereClause.test_id = test_id;
+      }
+
+      // Filter by program (through test relationship)
+      if (program_id) {
+        testIncludeWhere.program_id = program_id;
+      }
+
+      // Filter by submission status
+      if (status && ['submitted', 'under_review', 'result_released'].includes(status)) {
+        whereClause.status = status;
+      } else {
+        // Default: show all completed tests (submitted and result_released)
+        whereClause.status = {
+          [Op.in]: ['submitted', 'under_review', 'result_released']
+        };
+      }
+
+      const submissions = await TestSubmission.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: Student,
+            as: 'student',
+            attributes: ['id', 'first_name', 'last_name', 'mobile', 'qualification']
+          },
+          {
+            model: Test,
+            as: 'test',
+            attributes: ['id', 'title', 'description', 'duration', 'total_marks'],
+            where: Object.keys(testIncludeWhere).length > 0 ? testIncludeWhere : undefined,
+            include: [
+              {
+                model: Program,
+                as: 'program',
+                attributes: ['id', 'name']
+              }
+            ]
+          }
+        ],
+        order: [['submitted_at', 'DESC']]
+      });
+
+      // Group by student to avoid duplicates
+      const studentMap = new Map();
+      
+      submissions.forEach(submission => {
+        const studentId = submission.student.id;
+        if (!studentMap.has(studentId)) {
+          studentMap.set(studentId, {
+            student: submission.student,
+            completed_tests: []
+          });
+        }
+        
+        studentMap.get(studentId).completed_tests.push({
+          test_id: submission.test.id,
+          test_title: submission.test.title,
+          program_name: submission.test.program?.name,
+          submission_id: submission.id,
+          status: submission.status,
+          submitted_at: submission.submitted_at,
+          total_score: submission.total_score,
+          max_score: submission.max_score,
+          percentage: submission.percentage,
+          time_taken: submission.time_taken
+        });
+      });
+
+      const studentsWithCompletedTests = Array.from(studentMap.values());
+
+      return res.status(200).json({
+        success: true,
+        count: studentsWithCompletedTests.length,
+        data: studentsWithCompletedTests
+      });
+    } catch (error) {
+      console.error('Error fetching students with completed tests:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch students with completed tests',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  },
+
+  // Get student's test completion summary
+  async getStudentTestSummary(req, res) {
+    try {
+      const { studentId } = req.params;
+
+      const submissions = await TestSubmission.findAll({
+        where: { 
+          student_id: studentId,
+          status: {
+            [Op.in]: ['submitted', 'under_review', 'result_released']
+          }
+        },
+        include: [
+          {
+            model: Test,
+            as: 'test',
+            attributes: ['id', 'title', 'description', 'total_marks'],
+            include: [
+              {
+                model: Program,
+                as: 'program',
+                attributes: ['id', 'name']
+              }
+            ]
+          }
+        ],
+        order: [['submitted_at', 'DESC']]
+      });
+
+      const summary = {
+        total_completed_tests: submissions.length,
+        tests_by_status: {
+          submitted: submissions.filter(s => s.status === 'submitted').length,
+          under_review: submissions.filter(s => s.status === 'under_review').length,
+          result_released: submissions.filter(s => s.status === 'result_released').length
+        },
+        average_score: 0,
+        average_percentage: 0,
+        completed_tests: submissions.map(submission => ({
+          test_id: submission.test.id,
+          test_title: submission.test.title,
+          program_name: submission.test.program?.name,
+          submission_id: submission.id,
+          status: submission.status,
+          submitted_at: submission.submitted_at,
+          total_score: submission.total_score,
+          max_score: submission.max_score,
+          percentage: submission.percentage,
+          time_taken: submission.time_taken
+        }))
+      };
+
+      // Calculate averages for released results
+      const releasedResults = submissions.filter(s => s.status === 'result_released');
+      if (releasedResults.length > 0) {
+        summary.average_score = releasedResults.reduce((sum, s) => sum + (s.total_score || 0), 0) / releasedResults.length;
+        summary.average_percentage = releasedResults.reduce((sum, s) => sum + (s.percentage || 0), 0) / releasedResults.length;
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: summary
+      });
+    } catch (error) {
+      console.error('Error fetching student test summary:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch student test summary',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }

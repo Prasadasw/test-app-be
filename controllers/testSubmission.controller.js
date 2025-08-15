@@ -383,6 +383,194 @@ const testSubmissionController = {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
+  },
+
+  // Get detailed result for a specific test submission
+  async getTestResult(req, res) {
+    try {
+      const { submissionId } = req.params;
+      const student_id = req.user.id;
+
+      const submission = await TestSubmission.findOne({
+        where: { 
+          id: submissionId, 
+          student_id,
+          status: 'result_released'
+        },
+        include: [
+          {
+            model: Test,
+            as: 'test',
+            attributes: ['id', 'title', 'description', 'total_marks', 'duration']
+          },
+          {
+            model: StudentAnswer,
+            as: 'answers',
+            include: [
+              {
+                model: Question,
+                as: 'question',
+                attributes: ['id', 'question_text', 'question_image', 'option_a', 'option_b', 'option_c', 'option_d', 'option_a_image', 'option_b_image', 'option_c_image', 'option_d_image', 'correct_option', 'marks']
+              }
+            ]
+          }
+        ]
+      });
+
+      if (!submission) {
+        return res.status(404).json({
+          success: false,
+          message: 'Result not found or not yet released'
+        });
+      }
+
+      // Calculate performance metrics
+      const totalQuestions = submission.answers.length;
+      const correctAnswers = submission.answers.filter(answer => answer.is_correct).length;
+      const incorrectAnswers = totalQuestions - correctAnswers;
+
+      const result = {
+        submission_id: submission.id,
+        test: {
+          id: submission.test.id,
+          title: submission.test.title,
+          description: submission.test.description,
+          total_marks: submission.test.total_marks,
+          duration: submission.test.duration
+        },
+        performance: {
+          total_score: submission.total_score,
+          max_score: submission.max_score,
+          percentage: submission.percentage,
+          total_questions: totalQuestions,
+          correct_answers: correctAnswers,
+          incorrect_answers: incorrectAnswers,
+          accuracy: totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0
+        },
+        timing: {
+          started_at: submission.started_at,
+          submitted_at: submission.submitted_at,
+          time_taken: submission.time_taken
+        },
+        answers: submission.answers.map(answer => ({
+          question_id: answer.question_id,
+          question: answer.question,
+          selected_option: answer.selected_option,
+          correct_option: answer.question.correct_option,
+          is_correct: answer.is_correct,
+          marks_obtained: answer.marks_obtained,
+          max_marks: answer.max_marks
+        }))
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error getting test result:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get test result',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  },
+
+  // Get student's performance analytics
+  async getPerformanceAnalytics(req, res) {
+    try {
+      const student_id = req.user.id;
+
+      const submissions = await TestSubmission.findAll({
+        where: { 
+          student_id,
+          status: 'result_released'
+        },
+        include: [
+          {
+            model: Test,
+            as: 'test',
+            attributes: ['id', 'title', 'description', 'total_marks']
+          }
+        ],
+        order: [['submitted_at', 'DESC']]
+      });
+
+      if (submissions.length === 0) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            total_tests: 0,
+            average_score: 0,
+            average_percentage: 0,
+            best_performance: null,
+            recent_performance: [],
+            performance_trend: []
+          }
+        });
+      }
+
+      // Calculate analytics
+      const totalTests = submissions.length;
+      const averageScore = submissions.reduce((sum, s) => sum + (s.total_score || 0), 0) / totalTests;
+      const averagePercentage = submissions.reduce((sum, s) => sum + (s.percentage || 0), 0) / totalTests;
+      
+      // Find best performance
+      const bestPerformance = submissions.reduce((best, current) => 
+        (current.percentage || 0) > (best.percentage || 0) ? current : best
+      );
+
+      // Recent performance (last 5 tests)
+      const recentPerformance = submissions.slice(0, 5).map(s => ({
+        test_title: s.test.title,
+        score: s.total_score,
+        percentage: s.percentage,
+        submitted_at: s.submitted_at
+      }));
+
+      // Performance trend (monthly averages)
+      const monthlyData = {};
+      submissions.forEach(submission => {
+        const month = new Date(submission.submitted_at).toISOString().slice(0, 7); // YYYY-MM
+        if (!monthlyData[month]) {
+          monthlyData[month] = { total: 0, count: 0 };
+        }
+        monthlyData[month].total += submission.percentage || 0;
+        monthlyData[month].count += 1;
+      });
+
+      const performanceTrend = Object.entries(monthlyData).map(([month, data]) => ({
+        month,
+        average_percentage: data.total / data.count
+      })).sort((a, b) => a.month.localeCompare(b.month));
+
+      const analytics = {
+        total_tests: totalTests,
+        average_score: averageScore,
+        average_percentage: averagePercentage,
+        best_performance: bestPerformance ? {
+          test_title: bestPerformance.test.title,
+          score: bestPerformance.total_score,
+          percentage: bestPerformance.percentage,
+          submitted_at: bestPerformance.submitted_at
+        } : null,
+        recent_performance: recentPerformance,
+        performance_trend: performanceTrend
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: analytics
+      });
+    } catch (error) {
+      console.error('Error getting performance analytics:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get performance analytics',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
   }
 };
 

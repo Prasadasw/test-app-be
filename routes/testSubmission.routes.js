@@ -21,4 +21,10 @@ router.get('/answers/:submissionId', testSubmissionController.getSubmittedAnswer
 // Get all test results for the authenticated student
 router.get('/my-results', testSubmissionController.getMyResults);
 
+// Get detailed result for a specific test submission
+router.get('/result/:submissionId', testSubmissionController.getTestResult);
+
+// Get student's performance analytics
+router.get('/analytics', testSubmissionController.getPerformanceAnalytics);
+
 module.exports = router;
