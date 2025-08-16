@@ -7,8 +7,35 @@ const testController = {
     try {
       const { title, description, program_id, duration, total_marks, status } = req.body;
 
+      // Convert string values to proper types
+      const programId = parseInt(program_id, 10);
+      const durationInt = parseInt(duration, 10);
+      const totalMarksInt = parseInt(total_marks, 10);
+
+      // Validate conversions
+      if (isNaN(programId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid program_id format' 
+        });
+      }
+
+      if (isNaN(durationInt)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid duration format' 
+        });
+      }
+
+      if (isNaN(totalMarksInt)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid total_marks format' 
+        });
+      }
+
       // Check if Program exists
-      const program = await Program.findByPk(program_id);
+      const program = await Program.findByPk(programId);
       if (!program) {
         return res.status(404).json({ success: false, message: 'Program not found' });
       }
@@ -16,9 +43,9 @@ const testController = {
       const test = await Test.create({
         title,
         description,
-        program_id,
-        duration,
-        total_marks,
+        program_id: programId,
+        duration: durationInt,
+        total_marks: totalMarksInt,
         status: status !== undefined ? status : true
       });
 
@@ -29,6 +56,13 @@ const testController = {
       });
     } catch (error) {
       console.error('Error creating test:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        sql: error.sql
+      });
+      
       return res.status(500).json({
         success: false,
         message: 'Failed to create test',
