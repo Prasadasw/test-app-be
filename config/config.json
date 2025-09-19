@@ -15,7 +15,7 @@
   },
   "production": {
     "username": "test_app_user",
-    "password": "testappdb",
+    "password": "root",
     "database": "test_app_db",
     "host": "127.0.0.1",
     "dialect": "mysql"
